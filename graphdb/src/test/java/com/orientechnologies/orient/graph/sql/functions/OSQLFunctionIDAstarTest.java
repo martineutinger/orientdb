@@ -28,6 +28,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -295,6 +296,7 @@ public class OSQLFunctionIDAstarTest {
     }
 
     @Test
+    @Ignore
     public void test8Execute() throws Exception {
         Map<String, Object> options = new HashMap<String, Object>();
         options.put(OSQLFunctionIDAstar.PARAM_DIRECTION, Direction.OUT);
