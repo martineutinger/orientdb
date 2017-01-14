@@ -28,6 +28,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -202,7 +203,6 @@ public class OSQLFunctionLRTAstarTest {
         assertEquals(v1, result.get(0));
         assertEquals(v5, result.get(1));
         assertEquals(v6, result.get(2));
-
     }
     @Test
     public void test3Execute() throws Exception {
@@ -218,7 +218,6 @@ public class OSQLFunctionLRTAstarTest {
         assertEquals(v1, result.get(0));
         assertEquals(v5, result.get(1));
         assertEquals(v6, result.get(2));
-
     }
 
     @Test
@@ -235,7 +234,6 @@ public class OSQLFunctionLRTAstarTest {
         assertEquals(v1, result.get(0));
         assertEquals(v5, result.get(1));
         assertEquals(v6, result.get(2));
-
     }
 
     @Test
@@ -252,7 +250,6 @@ public class OSQLFunctionLRTAstarTest {
         assertEquals(v3, result.get(0));
         assertEquals(v6, result.get(1));
         assertEquals(v5, result.get(2));
-
     }
 
     @Test
@@ -370,7 +367,6 @@ public class OSQLFunctionLRTAstarTest {
                 new OBasicCommandContext());
         assertEquals(16, graph.countEdges("has_path"));
         assertEquals(0, result.size());
-
     }
 
     @Test
@@ -393,10 +389,10 @@ public class OSQLFunctionLRTAstarTest {
         assertEquals(v5, result.get(1));
         assertEquals(v2, result.get(2));
         assertEquals(v3, result.get(3));
-
     }
 
-//    @Test
+    @Test
+    @Ignore
     public void test13Execute() throws Exception {
         Map<String, Object> options = new HashMap<String, Object>();
         options.put(OSQLFunctionLRTAstar.PARAM_DIRECTION, "out");
