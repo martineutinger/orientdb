@@ -99,7 +99,7 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionHeuristicPathFinderAbstrac
         Map<OrientVertex, Double> old_hScore;
         do
         {
-            old_hScore = new HashMap<>(hScore);
+            old_hScore = new HashMap<OrientVertex, Double>(hScore);
             currentDepth = 0;
             closed.clear();
             route.clear();
@@ -116,7 +116,7 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionHeuristicPathFinderAbstrac
                 route.clear();
                 return getPath();
             }
-            LinkedList<OrientVertex> path = new LinkedList<>();
+            LinkedList<OrientVertex> path = new LinkedList<OrientVertex>();
             for(int i = 0; i <= paramMaxDepth; i++)
             {
                 path.add(route.get(i));
