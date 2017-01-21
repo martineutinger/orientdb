@@ -27,29 +27,29 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 import java.util.*;
 
 /**
- * A*'s algorithm describes how to find the cheapest path from one node to another node in a directed weighted graph with husrestic function.
+ * A*'s algorithm describes how to find the cheapest path from one node to another node in a directed weighted graph with heuristic
+ * function.
  * <p>
  * The first parameter is source record. The second parameter is destination record. The third parameter is a name of property that
- * represents 'weight' and fourth represnts the map of options.
+ * represents 'weight' and fourth represents the map of options.
  * <p>
  * If property is not defined in edge or is null, distance between vertexes are 0 .
  *
- * @author Saeed Tabrizi (saeed a_t  nowcando.com)
+ * @author Saeed Tabrizi (saeed a_t nowcando.com)
  */
 public class OSQLFunctionAstar extends OSQLFunctionAstarAbstract {
-  public static final String NAME = "astar";
+  public static final String                NAME      = "astar";
 
-  protected Set<OrientVertex>               closedSet            = new HashSet<OrientVertex>();
-  protected Map<OrientVertex, OrientVertex> cameFrom             = new HashMap<OrientVertex, OrientVertex>();
+  protected Set<OrientVertex>               closedSet = new HashSet<OrientVertex>();
+  protected Map<OrientVertex, OrientVertex> cameFrom  = new HashMap<OrientVertex, OrientVertex>();
+  protected Map<OrientVertex, Double>       gScore    = new HashMap<OrientVertex, Double>();
+  protected Map<OrientVertex, Double>       fScore    = new HashMap<OrientVertex, Double>();
+  protected PriorityQueue<OrientVertex>     open      = new PriorityQueue<OrientVertex>(1, new Comparator<OrientVertex>() {
 
-  protected Map<OrientVertex, Double>   gScore = new HashMap<OrientVertex, Double>();
-  protected Map<OrientVertex, Double>   fScore = new HashMap<OrientVertex, Double>();
-  protected PriorityQueue<OrientVertex> open   = new PriorityQueue<OrientVertex>(1, new Comparator<OrientVertex>() {
-
-    public int compare(OrientVertex nodeA, OrientVertex nodeB) {
-      return Double.compare(fScore.get(nodeA), fScore.get(nodeB));
-    }
-  });
+                                                        public int compare(OrientVertex nodeA, OrientVertex nodeB) {
+                                                          return Double.compare(fScore.get(nodeA), fScore.get(nodeB));
+                                                        }
+                                                      });
 
   public OSQLFunctionAstar() {
     super(NAME, 3, 4);
@@ -75,7 +75,7 @@ public class OSQLFunctionAstar extends OSQLFunctionAstarAbstract {
         route.clear(); // to ensure our result is empty
         return getPath();
       }
-      // if start and goal vertex is equal so return current path from  cameFrom hash map
+      // if start and goal vertex is equal so return current path from cameFrom hash map
       if (current.getIdentity().equals(goal.getIdentity()) || currentDepth >= paramMaxDepth) {
 
         while (current != null) {
