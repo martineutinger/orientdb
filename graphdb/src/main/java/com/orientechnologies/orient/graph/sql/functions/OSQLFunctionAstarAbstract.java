@@ -151,7 +151,7 @@ public abstract class OSQLFunctionAstarAbstract extends OSQLFunctionHeuristicPat
       if (mapParams.get(OSQLFunctionAstarAbstract.PARAM_HEURISTIC_FORMULA) != null) {
         if (mapParams.get(OSQLFunctionAstarAbstract.PARAM_HEURISTIC_FORMULA) instanceof String) {
           ctx.paramHeuristicFormula = HeuristicFormula
-              .valueOf(stringOrDefault(mapParams.get(OSQLFunctionAstarAbstract.PARAM_HEURISTIC_FORMULA), "MANHATAN").toUpperCase());
+              .valueOf(stringOrDefault(mapParams.get(OSQLFunctionAstarAbstract.PARAM_HEURISTIC_FORMULA), "MANHATTAN").toUpperCase());
         } else {
           ctx.paramHeuristicFormula = (HeuristicFormula) mapParams.get(OSQLFunctionAstarAbstract.PARAM_HEURISTIC_FORMULA);
         }
@@ -225,8 +225,8 @@ public abstract class OSQLFunctionAstarAbstract extends OSQLFunctionHeuristicPat
       double gy = doubleOrDefault(target.getProperty(paramVertexAxisNames[1]), 0);
 
       switch (paramHeuristicFormula) {
-      case MANHATAN:
-        hresult = getManhatanHeuristicCost(nx, ny, gx, gy, paramDFactor);
+      case MANHATTAN:
+        hresult = getManhattanHeuristicCost(nx, ny, gx, gy, paramDFactor);
         break;
       case MAXAXIS:
         hresult = getMaxAxisHeuristicCost(nx, ny, gx, gy, paramDFactor);
@@ -273,8 +273,8 @@ public abstract class OSQLFunctionAstarAbstract extends OSQLFunctionHeuristicPat
           pList.put(paramVertexAxisNames[i], p);
       }
       switch (paramHeuristicFormula) {
-      case MANHATAN:
-        hresult = getManhatanHeuristicCost(paramVertexAxisNames, sList, cList, pList, gList, currentDepth, paramDFactor);
+      case MANHATTAN:
+        hresult = getManhattanHeuristicCost(paramVertexAxisNames, sList, cList, pList, gList, currentDepth, paramDFactor);
         break;
       case MAXAXIS:
         hresult = getMaxAxisHeuristicCost(paramVertexAxisNames, sList, cList, pList, gList, currentDepth, paramDFactor);

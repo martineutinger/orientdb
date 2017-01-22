@@ -57,7 +57,7 @@ public abstract class OSQLFunctionHeuristicPathFinderAbstract extends OSQLFuncti
     protected String[] paramVertexAxisNames = new String[]{};
     protected OrientVertex paramSourceVertex;
     protected OrientVertex paramDestinationVertex;
-    protected HeuristicFormula paramHeuristicFormula = HeuristicFormula.MANHATAN;
+    protected HeuristicFormula paramHeuristicFormula = HeuristicFormula.MANHATTAN;
     protected Direction paramDirection = Direction.OUT;
     protected long paramMaxDepth = Long.MAX_VALUE;
     protected double paramDFactor = 1.0;
@@ -120,7 +120,7 @@ public abstract class OSQLFunctionHeuristicPathFinderAbstract extends OSQLFuncti
     }
 
     // obtains from http://theory.stanford.edu/~amitp/GameProgramming/Heuristics.html
-    protected double getManhatanHeuristicCost(double x, double y, double gx, double gy, double dFactor) {
+    protected double getManhattanHeuristicCost(double x, double y, double gx, double gy, double dFactor) {
         double dx = Math.abs(x - gx);
         double dy = Math.abs(y - gy);
         return dFactor * (dx + dy);
@@ -201,8 +201,8 @@ public abstract class OSQLFunctionHeuristicPathFinderAbstract extends OSQLFuncti
         return heuristic;
     }
 
-    protected double getManhatanHeuristicCost(final String[] axisNames, final Map<String, Double> slist, final Map<String, Double> clist,
-                                              final Map<String, Double> plist, final Map<String, Double> glist, long depth, double dFactor) {
+    protected double getManhattanHeuristicCost(final String[] axisNames, final Map<String, Double> slist, final Map<String, Double> clist,
+                                               final Map<String, Double> plist, final Map<String, Double> glist, long depth, double dFactor) {
         Double heuristic = 0.0;
         double res = 0.0;
         for (String str : axisNames) {

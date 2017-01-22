@@ -25,7 +25,7 @@ package com.orientechnologies.orient.graph.sql.functions;
  * @author Saeed Tabrizi (saeed a_t  nowcando.com)
  */
 public enum HeuristicFormula {
-    MANHATAN,
+    MANHATTAN,
     MAXAXIS,
     DIAGONAL,
     EUCLIDEAN,
