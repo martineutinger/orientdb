@@ -19,13 +19,8 @@
   */
 package com.orientechnologies.orient.graph.sql.functions;
 
-import com.orientechnologies.orient.core.Orient;
 import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.command.OCommandExecutorAbstract;
-import com.orientechnologies.orient.core.command.traverse.OTraverse;
-import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.metadata.function.OFunction;
-import com.orientechnologies.orient.core.metadata.function.OFunctionLibrary;
 import com.orientechnologies.orient.core.sql.functions.math.OSQLFunctionMathAbstract;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Vertex;
@@ -51,6 +46,7 @@ public abstract class OSQLFunctionHeuristicPathFinderAbstract extends OSQLFuncti
     public static final String PARAM_D_FACTOR = "dFactor";
     public static final String PARAM_TIE_BREAKER = "tieBreaker";
     public static final String PARAM_EMPTY_IF_MAX_DEPTH = "emptyIfMaxDepth";
+    public static final String PARAM_HAVERSINE_RADIUS = "haversineRadius";
     protected OrientBaseGraph db;
     protected static Random rnd = new Random();
 
@@ -66,6 +62,7 @@ public abstract class OSQLFunctionHeuristicPathFinderAbstract extends OSQLFuncti
     protected long paramMaxDepth = Long.MAX_VALUE;
     protected double paramDFactor = 1.0;
     protected String paramCustomHeuristicFormula = "";
+    protected double paramHaversineRadius = 6372.8;
 
     protected OCommandContext context;
     protected List<OrientVertex> route = new LinkedList<OrientVertex>();
@@ -157,6 +154,17 @@ public abstract class OSQLFunctionHeuristicPathFinderAbstract extends OSQLFuncti
         double dy = Math.abs(y - gy);
 
         return (dFactor * (Math.pow(dx, 2) + Math.pow(dy, 2)));
+    }
+
+    protected double getHaversineHeuristicCost(double x, double y, double gx, double gy, double dFactor, double haversineRadius) {
+        double lateralDistance = Math.toRadians(gx - x);
+        double longitudinalDistance = Math.toRadians(gy - y);
+        x = Math.toRadians(x);
+        gx = Math.toRadians(gx);
+
+        double a = Math.pow(Math.sin(lateralDistance / 2),2) + Math.pow(Math.sin(longitudinalDistance / 2),2) * Math.cos(x) * Math.cos(gx);
+        double c = 2 * Math.asin(Math.sqrt(a));
+        return dFactor * haversineRadius * c;
     }
 
     protected double getCustomHeuristicCost(final String functionName, final String[] vertextAxisNames, final OrientVertex start, final OrientVertex goal, final OrientVertex current, final OrientVertex parent, final long depth, double dFactor) {

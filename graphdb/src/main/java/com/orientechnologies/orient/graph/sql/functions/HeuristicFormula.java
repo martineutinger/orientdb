@@ -19,18 +19,6 @@
   */
 package com.orientechnologies.orient.graph.sql.functions;
 
-import com.orientechnologies.orient.core.command.OCommandContext;
-import com.orientechnologies.orient.core.command.OCommandExecutorAbstract;
-import com.orientechnologies.orient.core.id.ORID;
-import com.orientechnologies.orient.core.sql.functions.math.OSQLFunctionMathAbstract;
-import com.tinkerpop.blueprints.Direction;
-import com.tinkerpop.blueprints.Vertex;
-import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
-import com.tinkerpop.blueprints.impls.orient.OrientVertex;
-
-import java.util.*;
-
-
 /**
  *  Heuristic formula enum.
  *
@@ -42,5 +30,6 @@ public enum HeuristicFormula {
     DIAGONAL,
     EUCLIDEAN,
     EUCLIDEANNOSQR,
+    HAVERSINE,
     CUSTOM
 }

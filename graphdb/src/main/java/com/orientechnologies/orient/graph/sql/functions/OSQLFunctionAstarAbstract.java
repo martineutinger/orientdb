@@ -156,7 +156,7 @@ public abstract class OSQLFunctionAstarAbstract extends OSQLFunctionHeuristicPat
           ctx.paramHeuristicFormula = (HeuristicFormula) mapParams.get(OSQLFunctionAstarAbstract.PARAM_HEURISTIC_FORMULA);
         }
       }
-
+      ctx.paramHaversineRadius = doubleOrDefault(mapParams.get(OSQLFunctionAstarAbstract.PARAM_HAVERSINE_RADIUS), ctx.paramHaversineRadius);
       ctx.paramCustomHeuristicFormula = stringOrDefault(mapParams.get(OSQLFunctionAstarAbstract.PARAM_CUSTOM_HEURISTIC_FORMULA),
           "");
     }
@@ -239,6 +239,9 @@ public abstract class OSQLFunctionAstarAbstract extends OSQLFunctionHeuristicPat
         break;
       case EUCLIDEANNOSQR:
         hresult = getEuclideanNoSQRHeuristicCost(nx, ny, gx, gy, paramDFactor);
+        break;
+      case HAVERSINE:
+        hresult = getHaversineHeuristicCost(nx, ny, gx, gy, paramDFactor, paramHaversineRadius);
         break;
       case CUSTOM:
         hresult = getCustomHeuristicCost(paramCustomHeuristicFormula, paramVertexAxisNames, paramSourceVertex,
