@@ -21,9 +21,12 @@ package com.orientechnologies.orient.graph.sql.functions;
 
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
+import com.tinkerpop.blueprints.impls.orient.OrientEdge;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
 
 /**
  * @author Martin Eutinger (m.eutinger a_t googlemail.com) LRTA* based on
@@ -31,7 +34,6 @@ import java.util.*;
  */
 public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
   public static final String          NAME   = "lrtastar";
-  protected Set<OrientVertex>         closed = new HashSet<OrientVertex>();
   protected Map<OrientVertex, Double> hScore = new HashMap<OrientVertex, Double>();
 
   public OSQLFunctionLRTAstar() {
@@ -39,7 +41,6 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
   }
 
   protected LinkedList<OrientVertex> internalExecute(final OCommandContext iContext, OrientBaseGraph graph) {
-
     OrientVertex start = paramSourceVertex;
     OrientVertex goal = paramDestinationVertex;
 
@@ -48,10 +49,9 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
     do {
       old_hScore = new HashMap<OrientVertex, Double>(hScore);
       currentDepth = 0;
-      closed.clear();
       route.clear();
       route.add(start);
-      if (!trial(start, goal)) {
+      if (!trial(start, goal, graph)) {
         route.clear();
         return getPath();
       }
@@ -73,43 +73,39 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
     return getPath();
   }
 
-  // TODO avoid redundant calls
-  private boolean trial(OrientVertex start, OrientVertex goal) {
+  private boolean trial(OrientVertex start, OrientVertex goal, OrientBaseGraph graph) {
     OrientVertex current = start;
     while (!current.getIdentity().equals(goal.getIdentity())) {
-      LookaheadUpdate1(current, goal);
-      OrientVertex successor = getSuccessor(current, goal);
+      OrientVertex successor = getSuccessor(current, goal, graph);
       if (successor == null) {
         return false;
       }
       route.add(successor);
-      closed.add(successor);
       current = successor;
       currentDepth++;
     }
     return true;
   }
 
-  private boolean LookaheadUpdate1(OrientVertex current, OrientVertex goal) {
-    OrientVertex successor = getSuccessor(current, goal);
-    Double successor_hScore = getDistance(current, null, successor) + get_hScore(successor, current, goal);
-    if (get_hScore(current, null, goal) < successor_hScore) {
-      hScore.put(current, successor_hScore);
-      return true;
-    }
-    return false;
-  }
+  private OrientVertex getSuccessor(OrientVertex current, OrientVertex goal, OrientBaseGraph graph) {
+    double current_hScore = get_hScore(current, null, goal);
 
-  private OrientVertex getSuccessor(OrientVertex current, OrientVertex goal) {
-    double pick_hScore = Double.MAX_VALUE;
+    double minScore = Double.MAX_VALUE;
+    double pick_hScore = 0.0;
     OrientVertex pick = null;
-    for (OrientVertex neighbor : getNeighbors(current)) {
-      double neighbor_hScore = getDistance(current, null, neighbor) + get_hScore(neighbor, current, goal);
-      if (neighbor_hScore < pick_hScore) {
-        pick_hScore = neighbor_hScore;
+    for (OrientEdge neighborEdge : getNeighborEdges(current)) {
+      OrientVertex neighbor = getNeighbor(current, neighborEdge, graph);
+      double neighbor_hScore = get_hScore(neighbor, current, goal);
+      double neighborDistance = getDistance(neighborEdge);
+      double neighborScore = neighborDistance + neighbor_hScore;
+      if (neighborScore < minScore) {
+        minScore = neighborScore;
         pick = neighbor;
+        pick_hScore = neighbor_hScore;
       }
     }
+    hScore.put(current, Math.max(current_hScore, minScore));
+    hScore.put(pick, pick_hScore);
     return pick;
   }
 
