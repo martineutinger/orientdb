@@ -47,6 +47,7 @@ public abstract class OSQLFunctionHeuristicPathFinderAbstract extends OSQLFuncti
     public static final String PARAM_TIE_BREAKER = "tieBreaker";
     public static final String PARAM_EMPTY_IF_MAX_DEPTH = "emptyIfMaxDepth";
     public static final String PARAM_HAVERSINE_RADIUS = "haversineRadius";
+    public static final String PARAM_TIMEOUT = "timeout";
     protected OrientBaseGraph db;
     protected static Random rnd = new Random();
 
@@ -63,6 +64,7 @@ public abstract class OSQLFunctionHeuristicPathFinderAbstract extends OSQLFuncti
     protected double paramDFactor = 1.0;
     protected String paramCustomHeuristicFormula = "";
     protected double paramHaversineRadius = 6372.8;
+    protected double paramTimeout = Double.MAX_VALUE;
 
     protected OCommandContext context;
     protected List<OrientVertex> route = new LinkedList<OrientVertex>();
