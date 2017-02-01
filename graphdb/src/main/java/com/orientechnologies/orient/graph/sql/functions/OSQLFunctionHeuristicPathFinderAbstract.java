@@ -63,7 +63,7 @@ public abstract class OSQLFunctionHeuristicPathFinderAbstract extends OSQLFuncti
     protected long paramMaxDepth = Long.MAX_VALUE;
     protected double paramDFactor = 1.0;
     protected String paramCustomHeuristicFormula = "";
-    protected double paramHaversineRadius = 6372.8;
+    protected double paramHaversineRadius = 6371;
     protected double paramTimeout = Double.MAX_VALUE;
 
     protected OCommandContext context;
