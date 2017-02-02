@@ -51,7 +51,7 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
     route.clear();
 
     List<OrientVertex> bestPreviousRoute = new LinkedList<OrientVertex>();
-    double bestPreviousRouteLength = 0.0;
+    double bestPreviousRouteLength = Double.MAX_VALUE;
     startTime = System.nanoTime();
     Map<OrientVertex, Double> old_hScore;
 
@@ -65,7 +65,8 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
         route = bestPreviousRoute;
         break;
       }
-      if (bestPreviousRouteLength < routeLength) {
+      if (bestPreviousRouteLength > routeLength) {
+        bestPreviousRouteLength = routeLength;
         bestPreviousRoute = new LinkedList<OrientVertex>(route);
       }
     } while (!hScore.equals(old_hScore));
@@ -105,6 +106,7 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
 
     double minScore = Double.MAX_VALUE;
     double pick_hScore = 0.0;
+    double pickDistance = 0.0;
     OrientVertex pick = null;
     for (OrientEdge neighborEdge : getNeighborEdges(current)) {
       OrientVertex neighbor = getNeighbor(current, neighborEdge, graph);
@@ -115,9 +117,10 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
         minScore = neighborScore;
         pick = neighbor;
         pick_hScore = neighbor_hScore;
-        routeLength += neighborDistance;
+        pickDistance = neighborDistance;
       }
     }
+    routeLength += pickDistance;
     hScore.put(current, Math.max(current_hScore, minScore));
     hScore.put(pick, pick_hScore);
     return pick;
