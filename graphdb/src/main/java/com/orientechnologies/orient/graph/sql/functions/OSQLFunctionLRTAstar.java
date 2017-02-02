@@ -26,6 +26,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -35,6 +36,8 @@ import java.util.Map;
 public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
   public static final String          NAME   = "lrtastar";
   protected Map<OrientVertex, Double> hScore = new HashMap<OrientVertex, Double>();
+  private double                      startTime;
+  private double                      routeLength;
 
   public OSQLFunctionLRTAstar() {
     super(NAME, 3, 4);
@@ -44,20 +47,30 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
     OrientVertex start = paramSourceVertex;
     OrientVertex goal = paramDestinationVertex;
 
-    // TODO interrupt after timeout PARAM_TIMEOUT
+    hScore.clear();
+    route.clear();
+
+    List<OrientVertex> bestPreviousRoute = new LinkedList<OrientVertex>();
+    double bestPreviousRouteLength = 0.0;
+    startTime = System.nanoTime();
     Map<OrientVertex, Double> old_hScore;
+
     do {
       old_hScore = new HashMap<OrientVertex, Double>(hScore);
       currentDepth = 0;
+      routeLength = 0.0;
       route.clear();
       route.add(start);
       if (!trial(start, goal, graph)) {
-        route.clear();
-        return getPath();
+        route = bestPreviousRoute;
+        break;
+      }
+      if (bestPreviousRouteLength < routeLength) {
+        bestPreviousRoute = new LinkedList<OrientVertex>(route);
       }
     } while (!hScore.equals(old_hScore));
 
-    // TODO change; not sure if paramMaxDepth makes sense for lrta
+    // TODO not sure if paramMaxDepth makes sense for lrta
     if (currentDepth >= paramMaxDepth) {
       if (paramEmptyIfMaxDepth == true) {
         route.clear();
@@ -77,11 +90,11 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
     OrientVertex current = start;
     while (!current.getIdentity().equals(goal.getIdentity())) {
       OrientVertex successor = getSuccessor(current, goal, graph);
-      if (successor == null) {
-        return false;
-      }
       route.add(successor);
       current = successor;
+      if ((System.nanoTime() - startTime) / 1000000 > paramTimeout) {
+        return false;
+      }
       currentDepth++;
     }
     return true;
@@ -102,6 +115,7 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
         minScore = neighborScore;
         pick = neighbor;
         pick_hScore = neighbor_hScore;
+        routeLength += neighborDistance;
       }
     }
     hScore.put(current, Math.max(current_hScore, minScore));
