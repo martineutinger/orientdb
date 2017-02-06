@@ -59,10 +59,8 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
       old_hScore = new HashMap<OrientVertex, Double>(hScore);
       currentDepth = 0;
       routeLength = 0.0;
-      route.clear();
-      route.add(start);
       if (!trial(start, goal, graph)) {
-        route = bestPreviousRoute;
+        route = removeCycles(bestPreviousRoute);
         break;
       }
       if (bestPreviousRouteLength > routeLength) {
@@ -88,16 +86,18 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
   }
 
   private boolean trial(OrientVertex start, OrientVertex goal, OrientBaseGraph graph) {
+    route.clear();
     OrientVertex current = start;
     while (!current.getIdentity().equals(goal.getIdentity())) {
+      route.add(current);
       OrientVertex successor = getSuccessor(current, goal, graph);
-      route.add(successor);
       current = successor;
       if ((System.nanoTime() - startTime) / 1000000 > paramTimeout) {
         return false;
       }
       currentDepth++;
     }
+    route.add(current);
     return true;
   }
 
@@ -105,33 +105,43 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
     double current_hScore = get_hScore(current, null, goal);
 
     double minScore = Double.MAX_VALUE;
-    double pick_hScore = 0.0;
     double pickDistance = 0.0;
     OrientVertex pick = null;
     for (OrientEdge neighborEdge : getNeighborEdges(current)) {
       OrientVertex neighbor = getNeighbor(current, neighborEdge, graph);
-      double neighbor_hScore = get_hScore(neighbor, current, goal);
       double neighborDistance = getDistance(neighborEdge);
-      double neighborScore = neighborDistance + neighbor_hScore;
+      double neighborScore = neighborDistance + get_hScore(neighbor, current, goal);
       if (neighborScore < minScore) {
         minScore = neighborScore;
         pick = neighbor;
-        pick_hScore = neighbor_hScore;
         pickDistance = neighborDistance;
       }
     }
     routeLength += pickDistance;
     hScore.put(current, Math.max(current_hScore, minScore));
-    hScore.put(pick, pick_hScore);
     return pick;
   }
 
-  double get_hScore(final OrientVertex node, OrientVertex parent, final OrientVertex target) {
+  double get_hScore(final OrientVertex node, OrientVertex parent, final OrientVertex goal) {
     Double node_hScore = hScore.get(node);
     if (node_hScore == null) {
-      return getHeuristicCost(node, parent, target);
+      return getHeuristicCost(node, parent, goal);
     }
     return node_hScore;
+  }
+
+  private List<OrientVertex> removeCycles(List<OrientVertex> cycleRoute) {
+    List<OrientVertex> uniqueRoute = new LinkedList<OrientVertex>();
+    for (int i = 0; i < cycleRoute.size(); i++) {
+      OrientVertex current = cycleRoute.get(i);
+      uniqueRoute.add(current);
+      int indexOfCurrent = cycleRoute.indexOf(current);
+      int lastIndexOfCurrent = cycleRoute.lastIndexOf(current);
+      if (indexOfCurrent != lastIndexOfCurrent) {
+        i = lastIndexOfCurrent;
+      }
+    }
+    return uniqueRoute;
   }
 
   public String getSyntax() {
