@@ -54,8 +54,13 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
     double bestPreviousRouteLength = Double.MAX_VALUE;
     startTime = System.nanoTime();
     Map<OrientVertex, Double> old_hScore;
+    int trialCount = 0;
 
     do {
+      if(paramTrialLimit <= trialCount) {
+        route = removeCycles(route);
+        break;
+      }
       old_hScore = new HashMap<OrientVertex, Double>(hScore);
       currentDepth = 0;
       routeLength = 0.0;
@@ -63,6 +68,7 @@ public class OSQLFunctionLRTAstar extends OSQLFunctionAstarAbstract {
         route = removeCycles(bestPreviousRoute);
         break;
       }
+      trialCount++;
       if (bestPreviousRouteLength > routeLength) {
         bestPreviousRouteLength = routeLength;
         bestPreviousRoute = new LinkedList<OrientVertex>(route);
