@@ -158,6 +158,7 @@ public abstract class OSQLFunctionAstarAbstract extends OSQLFunctionHeuristicPat
       }
       ctx.paramHaversineRadius = doubleOrDefault(mapParams.get(OSQLFunctionAstarAbstract.PARAM_HAVERSINE_RADIUS), ctx.paramHaversineRadius);
       ctx.paramTimeout = doubleOrDefault(mapParams.get(OSQLFunctionAstarAbstract.PARAM_TIMEOUT), ctx.paramTimeout);
+      ctx.paramTrialLimit = integerOrDefault(mapParams.get(OSQLFunctionAstarAbstract.PARAM_TRIAL_LIMIT), ctx.paramTrialLimit);
       ctx.paramCustomHeuristicFormula = stringOrDefault(mapParams.get(OSQLFunctionAstarAbstract.PARAM_CUSTOM_HEURISTIC_FORMULA),
           "");
     }
