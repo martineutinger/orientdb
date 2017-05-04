@@ -45,6 +45,8 @@ import com.orientechnologies.orient.core.id.ORID;
 import com.orientechnologies.orient.core.id.ORecordId;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.clusterselection.OClusterSelectionStrategy;
+import com.orientechnologies.orient.core.record.ORecord;
+import com.orientechnologies.orient.core.record.ORecordInternal;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.replication.OAsyncReplicationError;
 import com.orientechnologies.orient.core.sql.OCommandExecutorSQLDelegate;
@@ -350,7 +352,7 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
       return result;
 
     } catch (OConcurrentModificationException e) {
-      localDistributedDatabase.getDatabaseRepairer().repairRecord((ORecordId) e.getRid());
+      localDistributedDatabase.getDatabaseRepairer().enqueueRepairRecord((ORecordId) e.getRid());
       throw e;
     } catch (ONeedRetryException e) {
       // PASS THROUGH
@@ -601,8 +603,13 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
     checkWriteQuorum(dbCfg, clusterName, localNodeName);
 
     try {
+      ODocument documentForClusterSelection = iRecordId.getRecord();
+      if (documentForClusterSelection == null) {
+        // DOCUMENT NOT FOUND: BUILD A TEMPORARY ONE
+        documentForClusterSelection = (ODocument) ORecordInternal.fill(new ODocument(), iRecordId, iRecordVersion, iContent, false);
+      }
 
-      checkForCluster(iRecordId, localNodeName, dbCfg);
+      checkForCluster(documentForClusterSelection, localNodeName, dbCfg);
 
       final List<String> servers = dbCfg.getServers(clusterName, null);
 
@@ -691,10 +698,10 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
       // PASS THROUGH
       throw e;
     } catch (ONeedRetryException e) {
-      localDistributedDatabase.getDatabaseRepairer().repairRecord(iRecordId);
+      localDistributedDatabase.getDatabaseRepairer().enqueueRepairRecord(iRecordId);
       final ORecordId lockEntireCluster = iRecordId.copy();
       lockEntireCluster.setClusterPosition(-1);
-      localDistributedDatabase.getDatabaseRepairer().repairRecord(lockEntireCluster);
+      localDistributedDatabase.getDatabaseRepairer().enqueueRepairRecord(lockEntireCluster);
 
       // PASS THROUGH
       throw e;
@@ -705,10 +712,10 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
       throw new OOfflineNodeException("Hazelcast instance is not available");
 
     } catch (Exception e) {
-      localDistributedDatabase.getDatabaseRepairer().repairRecord(iRecordId);
+      localDistributedDatabase.getDatabaseRepairer().enqueueRepairRecord(iRecordId);
       final ORecordId lockEntireCluster = iRecordId.copy();
       lockEntireCluster.setClusterPosition(-1);
-      localDistributedDatabase.getDatabaseRepairer().repairRecord(lockEntireCluster);
+      localDistributedDatabase.getDatabaseRepairer().enqueueRepairRecord(lockEntireCluster);
 
       handleDistributedException("Cannot route create record operation for %s to the distributed node", e, iRecordId);
       // UNREACHABLE
@@ -719,6 +726,10 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
 
   public OStorageOperationResult<ORawBuffer> readRecord(final ORecordId iRecordId, final String iFetchPlan,
       final boolean iIgnoreCache, final boolean prefetchRecords, final ORecordCallback<ORawBuffer> iCallback) {
+
+    final ORawBuffer memCopy = localDistributedDatabase.getRecordIfLocked(iRecordId);
+    if (memCopy != null)
+      return new OStorageOperationResult<ORawBuffer>(memCopy);
 
     try {
       final String clusterName = getClusterNameByRID(iRecordId);
@@ -774,6 +785,9 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
   @Override
   public OStorageOperationResult<ORawBuffer> readRecordIfVersionIsNotLatest(final ORecordId rid, final String fetchPlan,
       final boolean ignoreCache, final int recordVersion) throws ORecordNotFoundException {
+    final ORawBuffer memCopy = localDistributedDatabase.getRecordIfLocked(rid);
+    if (memCopy != null)
+      return new OStorageOperationResult<ORawBuffer>(memCopy);
 
     try {
       final String clusterName = getClusterNameByRID(rid);
@@ -918,6 +932,12 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
                     final Object payload = dResponse.getPayload();
 
                     if (payload instanceof Exception) {
+                      if (payload instanceof ORecordNotFoundException) {
+                        // REPAIR THE RECORD IMMEDIATELY
+                        localDistributedDatabase.getDatabaseRepairer()
+                            .enqueueRepairRecord((ORecordId) ((ORecordNotFoundException) payload).getRid());
+                      }
+
                       executeUndoOnLocalServer(dResponse.getRequestId(), task);
 
                       if (payload instanceof ONeedRetryException)
@@ -949,7 +969,7 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
           });
 
     } catch (ONeedRetryException e) {
-      localDistributedDatabase.getDatabaseRepairer().repairRecord(iRecordId);
+      localDistributedDatabase.getDatabaseRepairer().enqueueRepairRecord(iRecordId);
 
       // PASS THROUGH
       throw e;
@@ -961,7 +981,7 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
       throw new OOfflineNodeException("Hazelcast instance is not available");
 
     } catch (Exception e) {
-      localDistributedDatabase.getDatabaseRepairer().repairRecord(iRecordId);
+      localDistributedDatabase.getDatabaseRepairer().enqueueRepairRecord(iRecordId);
 
       handleDistributedException("Cannot route UPDATE_RECORD operation for %s to the distributed node", e, iRecordId);
       // UNREACHABLE
@@ -1073,7 +1093,13 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
 
                     final Object payload = dResponse.getPayload();
 
-                    if (payload instanceof Exception && !(payload instanceof ORecordNotFoundException)) {
+                    if (payload instanceof Exception) {
+                      if (payload instanceof ORecordNotFoundException) {
+                        // REPAIR THE RECORD IMMEDIATELY
+                        localDistributedDatabase.getDatabaseRepairer()
+                            .enqueueRepairRecord((ORecordId) ((ORecordNotFoundException) payload).getRid());
+                      }
+
                       executeUndoOnLocalServer(dResponse.getRequestId(), task);
 
                       if (payload instanceof ONeedRetryException)
@@ -1106,7 +1132,7 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
           });
 
     } catch (ONeedRetryException e) {
-      localDistributedDatabase.getDatabaseRepairer().repairRecord(iRecordId);
+      localDistributedDatabase.getDatabaseRepairer().enqueueRepairRecord(iRecordId);
 
       // PASS THROUGH
       throw e;
@@ -1118,7 +1144,7 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
       throw new OOfflineNodeException("Hazelcast instance is not available");
 
     } catch (Exception e) {
-      localDistributedDatabase.getDatabaseRepairer().repairRecord(iRecordId);
+      localDistributedDatabase.getDatabaseRepairer().enqueueRepairRecord(iRecordId);
 
       handleDistributedException("Cannot route DELETE_RECORD operation for %s to the distributed node", e, iRecordId);
       // UNREACHABLE
@@ -1820,10 +1846,10 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
   }
 
   protected void checkLocalNodeIsAvailable() {
-    if (!dManager.isNodeAvailable(dManager.getLocalNodeName(), getName()))
-      throw new ODistributedException(
-          "Cannot execute operation on current node '" + dManager.getLocalNodeName() + "', database '" + getName()
-              + "' because is not available (status=" + dManager.getDatabaseStatus(dManager.getLocalNodeName(), getName()) + ")");
+//    if (!dManager.isNodeAvailable(dManager.getLocalNodeName(), getName()))
+//      throw new ODistributedException(
+//          "Cannot execute operation on current node '" + dManager.getLocalNodeName() + "', database '" + getName()
+//              + "' because is not available (status=" + dManager.getDatabaseStatus(dManager.getLocalNodeName(), getName()) + ")");
   }
 
   public File getLastValidBackup() {
@@ -1954,12 +1980,15 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
     }
   }
 
-  protected String checkForCluster(final ORecordId iRecordId, final String localNodeName, ODistributedConfiguration dbCfg) {
+  protected String checkForCluster(final ORecord record, final String localNodeName, ODistributedConfiguration dbCfg) {
+    if (!(record instanceof ODocument))
+      return null;
 
-    if (iRecordId.getClusterId() < 0)
-      throw new IllegalArgumentException("RID " + iRecordId + " is not valid");
+    final ORecordId rid = (ORecordId) record.getIdentity();
+    if (rid.getClusterId() < 0)
+      throw new IllegalArgumentException("RID " + rid + " is not valid");
 
-    String clusterName = getClusterNameByRID(iRecordId);
+    String clusterName = getClusterNameByRID(rid);
 
     String ownerNode = dbCfg.getClusterOwner(clusterName);
 
@@ -1987,7 +2016,7 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
 
       dbCfg = ((OLocalClusterWrapperStrategy) clSel).readConfiguration();
 
-      newClusterName = getPhysicalClusterNameById(clSel.getCluster(cls, (ODocument) iRecordId.getRecord()));
+      newClusterName = getPhysicalClusterNameById(clSel.getCluster(cls, (ODocument) record));
 
       OLogManager.instance().info(this,
           "Local node '" + localNodeName + "' is not the owner for cluster '" + clusterName + "' (it is '" + ownerNode
@@ -1996,8 +2025,8 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
       ownerNode = dbCfg.getClusterOwner(newClusterName);
 
       // FORCE THE RETRY OF THE OPERATION
-      // throw new ODistributedConfigurationChangedException(
-      // "Local node '" + localNodeName + "' is not the owner for cluster '" + clusterName + "' (it is '" + ownerNode + "')");
+      throw new ODistributedConfigurationChangedException(
+          "Local node '" + localNodeName + "' is not the owner for cluster '" + clusterName + "' (it is '" + ownerNode + "')");
     }
 
     if (!ownerNode.equals(localNodeName))
@@ -2006,11 +2035,10 @@ public class ODistributedStorage implements OStorage, OFreezableStorageComponent
 
     // OVERWRITE CLUSTER
     clusterName = newClusterName;
-    final ORecordId oldRID = iRecordId.copy();
-    iRecordId.setClusterId(db.getClusterIdByName(newClusterName));
+    final ORecordId oldRID = rid.copy();
+    rid.setClusterId(db.getClusterIdByName(newClusterName));
 
-    OLogManager.instance()
-        .info(this, "Reassigned local cluster '%s' to the record %s. New RID is %s", newClusterName, oldRID, iRecordId);
+    OLogManager.instance().info(this, "Reassigned local cluster '%s' to the record %s. New RID is %s", newClusterName, oldRID, rid);
 
     return clusterName;
   }
